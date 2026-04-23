@@ -26,6 +26,10 @@ export interface TwilioConfig {
   recordingEnabled: boolean;
 }
 
+export interface SessionConfig {
+  backend: 'redis' | 'firestore' | 'memory';
+}
+
 export interface ZohoConfig {
   clientId: string;
   clientSecret: string;
@@ -40,6 +44,7 @@ export interface Config {
   deepgram: DeepgramConfig;
   twilio: TwilioConfig;
   zoho: ZohoConfig;
+  session: SessionConfig;
 }
 
 // =============================================================================
@@ -206,7 +211,7 @@ export interface IGptService extends EventEmitter {
   partialResponseIndex: number;
   openai: OpenAI;
   setCallSid(callSid: string): void;
-  completion(text: string, interactionCount: number, role?: ChatMessageRole, name?: string): Promise<void>;
+  completion(text: string, interactionCount: number, role?: ChatMessageRole, name?: string, skipContextUpdate?: boolean): Promise<void>;
   on(event: 'gptreply', listener: (reply: GptReply, count: number) => void): this;
   emit(event: 'gptreply', reply: GptReply, count: number): boolean;
 }
@@ -237,6 +242,9 @@ export interface ITextToSpeechService extends EventEmitter {
 export interface ISessionStore {
   enabled: boolean;
   setSessionValue(sessionId: string | null, data: SessionState, ttlSeconds?: number): Promise<void>;
+  getSessionValue?(sessionId: string | null): Promise<SessionState | null>;
+  deleteSessionValue?(sessionId: string | null): Promise<void>;
+  listSessionIds?(): Promise<string[]>;
 }
 
 // Recording service is a function

@@ -1,6 +1,6 @@
 import express from 'express';
-import { VoiceResponse } from 'twilio/lib/twiml/VoiceResponse.js';
-import { config } from '../config/index.js';
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse.js';
+import { config } from '../config/index';
 
 const incomingRouter = express.Router();
 

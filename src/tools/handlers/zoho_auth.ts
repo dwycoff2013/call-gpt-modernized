@@ -1,4 +1,4 @@
-import { zohoAuthClient, validateZohoEnv } from './zoho_auth_client.js';
+import { zohoAuthClient, validateZohoEnv } from './zoho_auth_client';
 
 export function getAccessToken(): Promise<string> {
   return zohoAuthClient.getAccessToken();

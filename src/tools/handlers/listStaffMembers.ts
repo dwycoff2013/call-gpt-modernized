@@ -1,5 +1,5 @@
-import { listStaffMembers } from './zoho_crm.js';
-import type { ToolHandler } from '../../types/index.js';
+import { listStaffMembers } from './zoho_crm';
+import type { ToolHandler } from '../../types/index';
 
 interface ListStaffMembersResult {
   status: string;

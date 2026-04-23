@@ -1,5 +1,6 @@
-import { getEnv, getEnvOptional, getEnvBoolean } from './env.js';
-import type { Config } from '../types/index.js';
+import { getEnv, getEnvOptional, getEnvBoolean } from './env';
+import type { Config } from '../types/index';
+import { resolveSessionBackend } from '../state/resolveSessionBackend';
 
 export const config: Config = {
   server: {
@@ -25,7 +26,10 @@ export const config: Config = {
     appointmentTypesRaw: getEnvOptional('ZOHO_APPOINTMENT_TYPES') || '[]',
     staffMembersRaw: getEnvOptional('ZOHO_STAFF_MEMBERS') || '[]',
   },
+  session: {
+    backend: resolveSessionBackend(),
+  },
 };
 
-export { getEnv, getEnvOptional, getEnvNumber, getEnvBoolean } from './env.js';
-export { validateEnv } from './validateEnv.js';
+export { getEnv, getEnvOptional, getEnvNumber, getEnvBoolean } from './env';
+export { validateEnv } from './validateEnv';

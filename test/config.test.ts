@@ -74,3 +74,44 @@ describe('Environment Utilities', () => {
     });
   });
 });
+
+
+describe('session backend config resolution', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...originalEnv };
+    delete process.env.SESSION_STORE_BACKEND;
+    delete process.env.REDIS_URL;
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  async function loadConfigBackend(): Promise<string> {
+    const mod = await import('../src/config/index.js');
+    return mod.config.session.backend;
+  }
+
+  it('matches resolver precedence: explicit backend > redis > firestore > memory', async () => {
+    process.env.SESSION_STORE_BACKEND = 'memory';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+    process.env.GOOGLE_CLOUD_PROJECT = 'project-a';
+    await expect(loadConfigBackend()).resolves.toBe('memory');
+
+    jest.resetModules();
+    delete process.env.SESSION_STORE_BACKEND;
+    await expect(loadConfigBackend()).resolves.toBe('redis');
+
+    jest.resetModules();
+    delete process.env.REDIS_URL;
+    await expect(loadConfigBackend()).resolves.toBe('firestore');
+
+    jest.resetModules();
+    delete process.env.GOOGLE_CLOUD_PROJECT;
+    await expect(loadConfigBackend()).resolves.toBe('memory');
+  });
+});

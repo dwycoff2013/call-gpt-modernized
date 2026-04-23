@@ -2,8 +2,8 @@ import 'colors';
 import { createClient, LiveTranscriptionEvents, type DeepgramClient } from '@deepgram/sdk';
 import { Buffer } from 'node:buffer';
 import EventEmitter from 'events';
-import { config } from '../config/index.js';
-import type { ITranscriptionService } from '../types/index.js';
+import { config } from '../config/index';
+import type { ITranscriptionService } from '../types/index';
 
 export class TranscriptionService extends EventEmitter implements ITranscriptionService {
   private dgConnection: ReturnType<DeepgramClient['listen']['live']>;
@@ -15,7 +15,7 @@ export class TranscriptionService extends EventEmitter implements ITranscription
     const deepgram = deepgramFactory(config.deepgram.apiKey);
     this.dgConnection = deepgram.listen.live({
       encoding: 'mulaw',
-      sample_rate: '8000',
+      sample_rate: 8000,
       model: 'nova-2',
       punctuate: true,
       interim_results: true,
@@ -30,9 +30,11 @@ export class TranscriptionService extends EventEmitter implements ITranscription
         const text = event.channel?.alternatives?.[0]?.transcript || '';
         
         if (event.type === 'UtteranceEnd') {
-          if (!this.speechFinal) {
+          if (!this.speechFinal && this.finalResult.trim().length > 0) {
             this.emit('transcription', this.finalResult);
           }
+          this.finalResult = '';
+          this.speechFinal = false;
           return;
         }
         
@@ -54,7 +56,9 @@ export class TranscriptionService extends EventEmitter implements ITranscription
 
   send(payload: string): void {
     if (this.dgConnection.getReadyState() === 1) {
-      this.dgConnection.send(Buffer.from(payload, 'base64'));
+      const audioBuffer = Buffer.from(payload, 'base64');
+      const arrayBuffer = audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength);
+      this.dgConnection.send(arrayBuffer);
     }
   }
 }

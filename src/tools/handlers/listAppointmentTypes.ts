@@ -1,5 +1,5 @@
-import { listAppointmentTypes } from './zoho_crm.js';
-import type { ToolHandler } from '../../types/index.js';
+import { listAppointmentTypes } from './zoho_crm';
+import type { ToolHandler } from '../../types/index';
 
 interface ListAppointmentTypesResult {
   status: string;

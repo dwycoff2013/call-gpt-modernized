@@ -1,7 +1,7 @@
 import axios from 'axios';
-import type { ZohoAuthClient as ZohoAuthClientType } from '../types/index.js';
 
-const ZOHO_TOKEN_URL = 'https://accounts.zoho.com/oauth/v2/token';
+const ZOHO_ACCOUNTS_URL = process.env.ZOHO_ACCOUNTS_URL || 'https://accounts.zoho.com';
+const ZOHO_TOKEN_URL = `${ZOHO_ACCOUNTS_URL.replace(/\/$/, '')}/oauth/v2/token`; 
 const ACCESS_TOKEN_EXPIRY_BUFFER_MS = 60 * 1000;
 
 function getRequiredEnv(name: string): string {
@@ -112,7 +112,7 @@ export class ZohoAuthClient {
       this.accessToken = access_token;
       this.expiresAt = Date.now() + ttlMs;
 
-      return this.accessToken;
+      return this.accessToken!;
     } catch (error) {
       const axiosError = error as { response?: { data: unknown }; message: string };
       const detail = axiosError.response ? JSON.stringify(axiosError.response.data) : axiosError.message;
@@ -140,4 +140,4 @@ export class ZohoAuthClient {
   }
 }
 
-export const zohoAuthClient: ZohoAuthClientType = new ZohoAuthClient() as unknown as ZohoAuthClientType;
+export const zohoAuthClient = new ZohoAuthClient();

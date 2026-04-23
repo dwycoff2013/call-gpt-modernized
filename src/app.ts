@@ -2,10 +2,10 @@ import 'dotenv/config';
 import 'colors';
 import express from 'express';
 import expressWs from 'express-ws';
-import { incomingRouter } from './http/incomingRouter.js';
-import { registerConnectionRoute } from './http/connectionRouter.js';
-import { validateEnv } from './config/index.js';
-import { config } from './config/index.js';
+import { incomingRouter } from './http/incomingRouter';
+import { registerConnectionRoute } from './http/connectionRouter';
+import { validateEnv } from './config/index';
+import { config } from './config/index';
 
 try {
   validateEnv();

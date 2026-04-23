@@ -1,9 +1,10 @@
 import 'colors';
 import EventEmitter from 'events';
 import OpenAI from 'openai';
-import tools from '../tools/manifest.js';
-import { toolRegistry } from '../tools/registry.js';
-import type { ChatMessage, GptReply, IGptService } from '../types/index.js';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import tools from '../tools/manifest';
+import { toolRegistry } from '../tools/registry';
+import type { ChatMessage, GptReply, IGptService } from '../types/index';
 
 export class GptService extends EventEmitter implements IGptService {
   public openai: OpenAI;
@@ -40,16 +41,42 @@ If you ask a question and receive no audible response from the caller after wait
     this.userContext.push({ role: 'system', content: `callSid: ${callSid}` });
   }
 
+  private extractFirstJsonObject(args: string): string | null {
+    const start = args.indexOf('{');
+    if (start < 0) {
+      return null;
+    }
+
+    let depth = 0;
+    for (let i = start; i < args.length; i += 1) {
+      const char = args[i];
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return args.slice(start, i + 1);
+        }
+      }
+    }
+
+    return null;
+  }
+
   validateFunctionArgs(args: string): Record<string, unknown> {
     try {
       return JSON.parse(args);
     } catch {
-      console.log('Warning: Double function arguments returned by OpenAI:', args);
-      // Seeing an error where sometimes we have two sets of args
-      if (args.indexOf('{') !== args.lastIndexOf('{')) {
-        return JSON.parse(args.substring(args.indexOf(''), args.indexOf('}') + 1));
+      const recoveredJson = this.extractFirstJsonObject(args);
+      if (!recoveredJson) {
+        return {};
       }
-      return {};
+
+      try {
+        return JSON.parse(recoveredJson);
+      } catch {
+        return {};
+      }
     }
   }
 
@@ -65,14 +92,17 @@ If you ask a question and receive no audible response from the caller after wait
     text: string,
     interactionCount: number,
     role: ChatMessage['role'] = 'user',
-    name = 'user'
+    name = 'user',
+    skipContextUpdate = false
   ): Promise<void> {
-    this.updateUserContext(name, role, text);
+    if (!skipContextUpdate) {
+      this.updateUserContext(name, role, text);
+    }
 
     // Step 1: Send user transcription to Chat GPT
     const stream = await this.openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: this.userContext,
+      messages: this.userContext as ChatCompletionMessageParam[],
       tools: tools,
       stream: true,
     });
@@ -133,7 +163,8 @@ If you ask a question and receive no audible response from the caller after wait
         this.updateUserContext(functionName, 'function', JSON.stringify(functionResponse));
 
         // call the completion function again but pass in the function response to have OpenAI generate a new assistant response
-        await this.completion(JSON.stringify(functionResponse), interactionCount, 'function', functionName);
+        await this.completion(JSON.stringify(functionResponse), interactionCount, 'function', functionName, true);
+        return;
       } else {
         // We use completeResponse for userContext
         completeResponse += content;
@@ -152,7 +183,9 @@ If you ask a question and receive no audible response from the caller after wait
         }
       }
     }
-    this.userContext.push({ role: 'assistant', content: completeResponse });
+    if (completeResponse.trim().length > 0) {
+      this.userContext.push({ role: 'assistant', content: completeResponse });
+    }
     console.log(`GPT -> user context length: ${this.userContext.length}`.green);
   }
 }

@@ -6,13 +6,14 @@ import {
   TranscriptionService,
   TextToSpeechService,
   recordingService,
-} from '../services/index.js';
-import { RedisSessionStore } from '../state/RedisSessionStore.js';
+} from '../services/index';
+import { createSessionStore } from '../state/createSessionStore';
 import type { 
   TwilioMessage, 
   SessionState, 
-  GptReply 
-} from '../types/index.js';
+  GptReply,
+  ISessionStore
+} from '../types/index';
 
 export class CallSessionManager {
   private ws: WebSocket;
@@ -25,15 +26,15 @@ export class CallSessionManager {
   private streamService: StreamService;
   private transcriptionService: TranscriptionService;
   private ttsService: TextToSpeechService;
-  private sessionStore: RedisSessionStore;
+  private sessionStore: ISessionStore;
 
-  constructor(ws: WebSocket) {
+  constructor(ws: WebSocket, sessionStore: ISessionStore = createSessionStore()) {
     this.ws = ws;
     this.gptService = new GptService();
     this.streamService = new StreamService(ws);
     this.transcriptionService = new TranscriptionService();
     this.ttsService = new TextToSpeechService();
-    this.sessionStore = new RedisSessionStore();
+    this.sessionStore = sessionStore;
   }
 
   async initialize(): Promise<void> {
@@ -159,17 +160,26 @@ export class CallSessionManager {
   }
 
   private async saveSessionState(status: SessionState['status']): Promise<void> {
-    await this.sessionStore.setSessionValue(
-      this.callSid || this.streamSid,
-      {
+    try {
+      await this.sessionStore.setSessionValue(
+        this.callSid || this.streamSid,
+        {
+          callSid: this.callSid,
+          streamSid: this.streamSid,
+          status,
+          interactionCount: this.interactionCount,
+          updatedAt: new Date().toISOString(),
+        },
+        3600,
+      );
+    } catch (error) {
+      console.error('Failed to persist session state:', {
         callSid: this.callSid,
         streamSid: this.streamSid,
         status,
-        interactionCount: this.interactionCount,
-        updatedAt: new Date().toISOString(),
-      },
-      3600,
-    );
+        error: (error as Error).message,
+      });
+    }
   }
 }
 

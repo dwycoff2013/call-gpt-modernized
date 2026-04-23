@@ -1,4 +1,4 @@
-import { getEnvOptional } from './env.js';
+import { getEnvOptional } from './env';
 
 export function validateEnv(): void {
   const missing: string[] = [];

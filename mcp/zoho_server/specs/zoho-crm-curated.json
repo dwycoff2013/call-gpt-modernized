@@ -1,0 +1,95 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Zoho CRM Curated API",
+    "version": "1.0.0",
+    "description": "Minimal curated Zoho CRM surface used by call-gpt-modernized."
+  },
+  "servers": [
+    {
+      "url": "https://www.zohoapis.com/crm/v2"
+    }
+  ],
+  "paths": {
+    "/Leads/search": {
+      "get": {
+        "operationId": "findLeadByEmail",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lead search result"
+          }
+        }
+      }
+    },
+    "/Leads": {
+      "post": {
+        "operationId": "createLead",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lead created"
+          }
+        }
+      }
+    },
+    "/Events": {
+      "post": {
+        "operationId": "createEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event created"
+          }
+        }
+      }
+    },
+    "/coql": {
+      "post": {
+        "operationId": "getEventsByTimeRange",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "COQL query result"
+          }
+        }
+      }
+    }
+  }
+}

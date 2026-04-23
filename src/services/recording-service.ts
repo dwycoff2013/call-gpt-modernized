@@ -1,11 +1,11 @@
-import type { ITextToSpeechService } from '../types/index.js';
-import { config } from '../config/index.js';
+import type { ITextToSpeechService } from '../types/index';
+import { config } from '../config/index';
 
 /**
  * Recording service for Twilio call recording
  */
 export async function recordingService(
-  ttsService: ITextToSpeechService,
+  _ttsService: ITextToSpeechService,
   callSid: string
 ): Promise<void> {
   if (!config.twilio.recordingEnabled) {

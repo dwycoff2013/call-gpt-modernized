@@ -1,5 +1,5 @@
-import { findCrmLeadByEmail, createCrmLead, createCrmEvent } from './zoho_crm.js';
-import type { ToolHandler } from '../../types/index.js';
+import { findCrmLeadByEmail, createCrmLead, createCrmEvent } from './zoho_crm';
+import type { ToolHandler } from '../../types/index';
 
 interface CreateCrmLeadAndEventArgs {
   first_name: string;
@@ -21,7 +21,7 @@ interface CreateCrmLeadAndEventResult {
 }
 
 const createCrmLeadAndEvent: ToolHandler = async (args): Promise<CreateCrmLeadAndEventResult> => {
-  const typedArgs = args as CreateCrmLeadAndEventArgs;
+  const typedArgs = args as unknown as CreateCrmLeadAndEventArgs;
   const { 
     first_name, 
     last_name, 

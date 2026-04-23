@@ -1,8 +1,7 @@
-import type express from 'express';
-import type { Application } from 'express-ws';
-import { CallSessionManager } from '../session/CallSessionManager.js';
+import express from 'express';
+import { CallSessionManager } from '../session/CallSessionManager';
 
-export function registerConnectionRoute(app: Application, expressWsInstance: { applyTo: (router: express.Router) => void }): void {
+export function registerConnectionRoute(app: express.Application, expressWsInstance: { applyTo: (router: express.Router) => void }): void {
   const connectionRouter = express.Router();
   expressWsInstance.applyTo(connectionRouter);
 

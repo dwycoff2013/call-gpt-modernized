@@ -1,12 +1,8 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { toolDefinitions } from './tool-definitions.js';
-import type { ToolRegistry, ToolHandler } from '../types/index.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { toolDefinitions } from './tool-definitions';
+import type { ToolRegistry, ToolHandler } from '../types/index';
 
 function lazyHandler(handlerPath: string): ToolHandler {
-  const modulePath = path.join(__dirname, handlerPath);
+  const modulePath = handlerPath.endsWith('.js') ? handlerPath : `${handlerPath}.js`;
   return async (...args: Parameters<ToolHandler>) => {
     const handler = await import(modulePath);
     return handler.default(...args);

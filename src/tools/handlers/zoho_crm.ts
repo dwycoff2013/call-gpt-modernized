@@ -1,14 +1,11 @@
-import axios from 'axios';
-import { executeWithAuthRetry } from './zoho_auth.js';
-import type { 
-  LeadDetails, 
-  EventDetails, 
-  CrmLead, 
-  AppointmentType, 
-  StaffMember 
-} from '../../types/index.js';
-
-const ZOHO_CRM_API_URL = 'https://www.zohoapis.com/crm/v2';
+import { zdkZohoClient } from '../../integrations/zoho/zdkClient';
+import type {
+  LeadDetails,
+  EventDetails,
+  CrmLead,
+  AppointmentType,
+  StaffMember,
+} from '../../types/index';
 
 function parseSelectionList(rawList: string | undefined): AppointmentType[] | StaffMember[] {
   if (!rawList) {
@@ -30,6 +27,14 @@ export function listAppointmentTypes(): AppointmentType[] {
 
 export function listStaffMembers(): StaffMember[] {
   return parseSelectionList(process.env.ZOHO_STAFF_MEMBERS);
+}
+
+const ISO_8601_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+
+function validateIsoDateTime(value: string, label: string): void {
+  if (!ISO_8601_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new Error(`${label} must be a valid ISO-8601 datetime string.`);
+  }
 }
 
 interface ResolveSelectionParams {
@@ -77,152 +82,43 @@ function resolveSelection({ selection, list, idKeys, label }: ResolveSelectionPa
   return idKey ? String((match as Record<string, unknown>)[idKey]) : selection;
 }
 
-function withAuthHeaders(token: string): { Authorization: string } {
-  return { Authorization: `Zoho-oauthtoken ${token}` };
-}
-
 export async function createCrmLead(leadDetails: LeadDetails): Promise<string> {
-  const { first_name, last_name, email, phone } = leadDetails;
-
-  const crmData = {
-    data: [{
-      First_Name: first_name,
-      Last_Name: last_name,
-      Email: email,
-      Phone: phone,
-      Lead_Source: 'Phone Call Intake',
-    }],
-  };
-
-  try {
-    const response = await executeWithAuthRetry((token) => axios.post(
-      `${ZOHO_CRM_API_URL}/Leads`,
-      crmData,
-      { headers: withAuthHeaders(token) },
-    ));
-
-    const result = response.data.data[0];
-    if (result.status === 'success') {
-      console.log(`Successfully created lead with ID: ${result.details.id}`);
-      return result.details.id;
-    }
-
-    throw new Error(`Error creating CRM lead: ${JSON.stringify(result)}`);
-  } catch (error) {
-    const axiosError = error as { response?: { data: unknown }; message: string };
-    console.error('Error in createCrmLead:', axiosError.response ? JSON.stringify(axiosError.response.data) : axiosError.message);
-    throw error;
-  }
+  return zdkZohoClient.createLead(leadDetails);
 }
 
 export async function createCrmEvent(eventDetails: EventDetails): Promise<string> {
-  const { event_title, start_datetime, end_datetime, lead_id, appointment_type, staff_member } = eventDetails;
-
-  const eventPayload: Record<string, unknown> = {
-    Event_Title: event_title,
-    Start_DateTime: start_datetime,
-    End_DateTime: end_datetime,
-  };
-
   const appointmentTypes = listAppointmentTypes();
   const staffMembers = listStaffMembers();
+
   const resourceId = resolveSelection({
-    selection: appointment_type,
+    selection: eventDetails.appointment_type,
     list: appointmentTypes,
     idKeys: ['resource_id', 'id'],
     label: 'Appointment type',
   });
+
   const staffId = resolveSelection({
-    selection: staff_member,
+    selection: eventDetails.staff_member,
     list: staffMembers,
     idKeys: ['staff_id', 'id'],
     label: 'Staff member',
   });
 
-  if (resourceId) {
-    eventPayload.Resource_Id = resourceId;
-  }
-
-  if (staffId) {
-    eventPayload.Staff_Id = staffId;
-  }
-
-  if (lead_id) {
-    eventPayload.$se_module = 'Leads';
-    eventPayload.What_Id = { id: lead_id };
-  }
-
-  const eventData = {
-    data: [eventPayload],
-  };
-
-  try {
-    const response = await executeWithAuthRetry((token) => axios.post(
-      `${ZOHO_CRM_API_URL}/Events`,
-      eventData,
-      { headers: withAuthHeaders(token) },
-    ));
-
-    const result = response.data.data[0];
-    if (result.status === 'success') {
-      console.log(`Successfully created event with ID: ${result.details.id}`);
-      return result.details.id;
-    }
-
-    throw new Error(`Error creating CRM event: ${JSON.stringify(result)}`);
-  } catch (error) {
-    const axiosError = error as { response?: { data: unknown }; message: string };
-    console.error('Error in createCrmEvent:', axiosError.response ? JSON.stringify(axiosError.response.data) : axiosError.message);
-    throw error;
-  }
+  return zdkZohoClient.createEvent({
+    ...eventDetails,
+    appointment_type: resourceId || undefined,
+    staff_member: staffId || undefined,
+  });
 }
 
 export async function findCrmLeadByEmail(email: string): Promise<CrmLead | null> {
-  try {
-    const response = await executeWithAuthRetry((token) => axios.get(
-      `${ZOHO_CRM_API_URL}/Leads/search`,
-      {
-        params: { email },
-        headers: withAuthHeaders(token),
-      },
-    ));
-
-    if (response.data && response.data.data) {
-      return response.data.data[0];
-    }
-
-    return null;
-  } catch (error) {
-    const axiosError = error as { response?: { data: { code: string } }; message: string };
-    if (axiosError.response && axiosError.response.data && axiosError.response.data.code === 'NO_RECORDS_FOUND') {
-      return null;
-    }
-
-    console.error('Error in findCrmLeadByEmail:', axiosError.response ? JSON.stringify(axiosError.response.data) : axiosError.message);
-    throw error;
-  }
+  return zdkZohoClient.findLeadByEmail(email);
 }
 
 export async function getEventsByTimeRange(start_datetime: string, end_datetime: string): Promise<Array<{ id: string }>> {
-  const query = `select id from Events where (Start_DateTime <= '${end_datetime}' and End_DateTime >= '${start_datetime}')`;
-
-  try {
-    const response = await executeWithAuthRetry((token) => axios.post(
-      `${ZOHO_CRM_API_URL}/coql`,
-      { select_query: query },
-      { headers: withAuthHeaders(token) },
-    ));
-
-    return response.data.data || [];
-  } catch (error) {
-    const axiosError = error as { response?: { status: number }; message: string };
-    if (axiosError.response && axiosError.response.status === 204) {
-      return [];
-    }
-
-    console.error('Error in getEventsByTimeRange:', axiosError.response ? JSON.stringify(axiosError.response.data) : axiosError.message);
-    throw error;
-  }
+  validateIsoDateTime(start_datetime, 'start_datetime');
+  validateIsoDateTime(end_datetime, 'end_datetime');
+  return zdkZohoClient.getEventsByTimeRange(start_datetime, end_datetime);
 }
 
 export { resolveSelection };

@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import EventEmitter from 'events';
-import { config } from '../config/index.js';
-import type { ITextToSpeechService, GptReply } from '../types/index.js';
+import { config } from '../config/index';
+import type { ITextToSpeechService, GptReply } from '../types/index';
 
 export class TextToSpeechService extends EventEmitter implements ITextToSpeechService {
   async generate(gptReply: GptReply, interactionCount: number): Promise<void> {

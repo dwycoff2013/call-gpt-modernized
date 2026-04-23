@@ -1,5 +1,5 @@
-import { toolDefinitions } from './tool-definitions.js';
-import type { ToolManifest } from '../types/index.js';
+import { toolDefinitions } from './tool-definitions';
+import type { ToolManifest } from '../types/index';
 
 export const tools: ToolManifest[] = toolDefinitions.map((definition) => ({
   type: 'function' as const,

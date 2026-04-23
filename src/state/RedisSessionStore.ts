@@ -1,5 +1,5 @@
 import net from 'node:net';
-import type { ISessionStore, SessionState } from '../types/index.js';
+import type { ISessionStore, SessionState } from '../types/index';
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 5000;
 

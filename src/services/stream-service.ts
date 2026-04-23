@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import type WebSocket from 'ws';
-import type { IStreamService } from '../types/index.js';
+import type { IStreamService } from '../types/index';
 
 export class StreamService extends EventEmitter implements IStreamService {
   public ws: WebSocket;
